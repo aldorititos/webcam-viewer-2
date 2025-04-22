@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Cámara Web</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .video-container {
+            width: 100%;
+            max-width: 640px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #000;
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #capture-btn {
+            background-color: #e74c3c;
+        }
+        #capture-btn:hover {
+            background-color: #c0392b;
+        }
+        #snapshot {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border-radius: 8px;
+            display: none;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de Cámara Web</h1>
+    <div class="container">
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+        </div>
+        
+        <div class="button-group">
+            <button id="start-btn">Iniciar Cámara</button>
+            <button id="capture-btn">Capturar Imagen</button>
+            <button id="change-camera-btn">Cambiar Cámara</button>
+        </div>
+        
+        <div class="error-message" id="error-message">
+            No se pudo acceder a la cámara. Por favor, verifica los permisos.
+        </div>
+        
+        <canvas id="canvas" style="display:none;"></canvas>
+        <img id="snapshot" alt="Captura de pantalla">
+    </div>
+    
+    <div class="footer">
+        <p>Desarrollado con ❤️ | <a href="https://github.com/tuusuario" target="_blank">GitHub</a></p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snapshot = document.getElementById('snapshot');
+        const startButton = document.getElementById('start-btn');
+        const captureButton = document.getElementById('capture-btn');
+        const changeCameraButton = document.getElementById('change-camera-btn');
+        const errorMessage = document.getElementById('error-message');
+        
+        let stream = null;
+        let facingMode = "user"; // Iniciar con cámara frontal
+        
+        // Configuración de las restricciones de video
+        const getVideoConstraints = () => {
+            return {
+                video: {
+                    facingMode: facingMode
+                }
+            };
+        };
+        
+        // Iniciar la cámara web
+        const startCamera = async () => {
+            try {
+                if (stream) {
+                    stopCamera();
+                }
+                
+                stream = await navigator.mediaDevices.getUserMedia(getVideoConstraints());
+                video.srcObject = stream;
+                errorMessage.style.display = "none";
+            } catch (err) {
+                console.error("Error al acceder a la cámara: ", err);
+                errorMessage.style.display = "block";
+            }
+        };
+        
+        // Detener la cámara web
+        const stopCamera = () => {
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                video.srcObject = null;
+                stream = null;
+            }
+        };
+        
+        // Cambiar entre cámara frontal y trasera
+        const changeCamera = () => {
+            facingMode = facingMode === "user" ? "environment" : "user";
+            startCamera();
+        };
+        
+        // Capturar una imagen
+        const captureImage = () => {
+            if (!stream) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            snapshot.src = canvas.toDataURL('image/png');
+            snapshot.style.display = "block";
+        };
+        
+        // Event listeners
+        startButton.addEventListener('click', startCamera);
+        captureButton.addEventListener('click', captureImage);
+        changeCameraButton.addEventListener('click', changeCamera);
+        
+        // Al cargar la página, comprobar si el navegador soporta getUserMedia
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                errorMessage.textContent = "Tu navegador no soporta acceso a la cámara";
+                errorMessage.style.display = "block";
+                startButton.disabled = true;
+                captureButton.disabled = true;
+                changeCameraButton.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
